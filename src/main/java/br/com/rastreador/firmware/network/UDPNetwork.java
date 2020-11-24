@@ -1,5 +1,6 @@
 package br.com.rastreador.firmware.network;
 
+import br.com.rastreador.firmware.ConversorUtil;
 import br.com.rastreador.firmware.network.io.InputData;
 import br.com.rastreador.firmware.network.io.OutputData;
 import br.com.rastreador.firmware.network.io.ReadingThread;
@@ -31,7 +32,8 @@ public class UDPNetwork {
     public synchronized void start() throws IOException  {
         stop();
         socket = new DatagramSocket();
-        if (timeout > 0) socket.setSoTimeout(timeout);
+        if (timeout > 0)
+            socket.setSoTimeout(timeout);
 
         UDPData udpData = new UDPData(socket);
         threadEscrita = new WritingThread(udpData);
@@ -46,9 +48,9 @@ public class UDPNetwork {
         if (socket != null) socket.close();
     }
 
-    public void setTimeout(int timeout) throws SocketException {
-        if (timeout < 0) return;
-        this.timeout = timeout;
+    public void setTimeout(int timeoutInMS) throws SocketException {
+        if (timeoutInMS < 0) return;
+        this.timeout = timeoutInMS;
         if (socket == null) return;
 
         synchronized (socket) {
@@ -71,11 +73,12 @@ public class UDPNetwork {
         @Override
         public byte[] read() {
             byte[] message = new byte[1024];
-            DatagramPacket packet = new DatagramPacket(message, message.length, address, port);
+            DatagramPacket packet = new DatagramPacket(message, message.length);
             try {
                 socket.receive(packet);
+                System.out.println("UDPSocket read <<<-- " + ConversorUtil.bytesToHex(packet.getData()));
             } catch (Throwable e) {
-//                e.printStackTrace();
+                e.printStackTrace();
             }
             return packet.getData();
         }
@@ -83,7 +86,8 @@ public class UDPNetwork {
         @Override
         public void write(byte[] message) {
             try {
-                socket.send(new DatagramPacket(message, message.length));
+                socket.send(new DatagramPacket(message, message.length, address, port));
+                System.out.println("UDPSocket write -->>> " + ConversorUtil.bytesToHex(message));
             } catch (Throwable e) {
                 e.printStackTrace();
             }

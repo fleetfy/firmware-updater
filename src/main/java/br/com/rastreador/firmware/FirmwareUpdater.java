@@ -22,15 +22,17 @@ public class FirmwareUpdater {
         firmware = new Firmware(Paths.get(filePath));
 
         udpNetwork = new UDPNetwork(InetAddress.getByName(address), 3232, onUDPNetworkReceiveMessage());
-        udpNetwork.setTimeout(10);
+        udpNetwork.setTimeout(10000);
         udpNetwork.start();
 
+        initUpdate();
     }
 
     private void initUpdate() {
         String message = String.format("%d %d %d %s\n", FLASH_COMMAND,
                 networkServer.getPort(), firmware.getSize(), firmware.getMd5());
 
+        System.out.println("Invitation Message -> " + message);
         udpNetwork.sendMessage(message.getBytes());
     }
 
