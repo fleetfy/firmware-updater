@@ -11,7 +11,7 @@ public class Firmware {
     private final String fileName;
 
     public Firmware(Path file) throws Throwable {
-        fileName = file.getFileName().toString();
+        fileName = file.toString();
         firmware = Files.readAllBytes(file);
         MessageDigest messageDigest = MessageDigest.getInstance("md5");
         md5 = ConversorUtil.bytesToHex(messageDigest.digest(firmware)).toLowerCase();
@@ -32,4 +32,5 @@ public class Firmware {
     public String getFileName() {
         return fileName;
     }
+
 }

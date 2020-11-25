@@ -79,7 +79,7 @@ public class UDPNetwork {
         @Override
         public byte[] read() {
             byte[] message = new byte[1024];
-            byte[] messageRead;
+            byte[] messageRead = new byte[0];
             DatagramPacket packet = new DatagramPacket(message, message.length);
             try {
                 socket.receive(packet);
@@ -90,7 +90,7 @@ public class UDPNetwork {
                 e.printStackTrace();
             }
 
-            return message;
+            return messageRead;
         }
 
         @Override

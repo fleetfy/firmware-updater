@@ -14,18 +14,13 @@ import java.util.logging.Logger;
 public class TCPNetworkServer {
     private final int PORT = 5050;
     private final OnReceiveMessage onReceiverMessage;
-    private boolean running;
-
-    private Thread serverThread;
-    private byte[] bufferGeral;
-
     private ServerSocket server;
 
     public TCPNetworkServer(OnReceiveMessage onReceiveMessage) {
         this.onReceiverMessage = onReceiveMessage;
     }
 
-    private void initServer() throws IOException {
+    public void initServer() throws IOException {
         server = new ServerSocket();
         server.setReuseAddress(false);
         do {
@@ -36,54 +31,22 @@ public class TCPNetworkServer {
                 e.printStackTrace();
             }
         } while (!server.isBound());
+
+        System.out.println("TCPServer OK!");
     }
 
-    public void start() {
-        running = true;
-        serverThread = new Thread(() -> {
-            try {
-                initServer();
-                while (running) {
-                    final Socket client = server.accept();
-                    ThreadPoolUtil.submit(() -> {
-                        try {
-                            byte[] buffer = new byte[512];
-                            int tamanhoLido;
-                            try (InputStream in = client.getInputStream()) {
-                                while (((tamanhoLido = in.read(buffer)) > 0)) {
-                                    bufferGeral = ArrayUtil.concatenar(bufferGeral, Arrays.copyOfRange(buffer, 0, tamanhoLido));
-                                    Arrays.fill(buffer, (byte) 0x00);
-                                    onReceiverMessage.receive(bufferGeral);
-                                }
-                            }
-                            client.close();
-                        } catch (IOException ex) {
-                            Logger.getLogger(TCPNetworkServer.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                    });
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        });
-        serverThread.setName("TCPNetworkServer - Listener");
-        serverThread.start();
-    }
+    public TCPNetwork waitingDevice() throws Throwable {
+        server.setSoTimeout(10000);
+        final Socket client = server.accept();
+        System.out.println(client.isConnected());
+        TCPNetwork tcpNetwork = new TCPNetwork(client, onReceiverMessage);
+        tcpNetwork.start();
 
-    public void stop() {
-        running = false;
-        if (serverThread != null) {
-            serverThread.interrupt();
-        }
-        serverThread = null;
+        return tcpNetwork;
     }
 
     public int getPort() {
         return PORT;
-    }
-
-    public InetAddress getAddress() {
-        return server.getInetAddress();
     }
 
 }
