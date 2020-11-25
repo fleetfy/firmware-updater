@@ -7,10 +7,7 @@ import br.com.rastreador.firmware.network.io.ReadingThread;
 import br.com.rastreador.firmware.network.io.WritingThread;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 
 public class UDPNetwork {
 
@@ -23,7 +20,7 @@ public class UDPNetwork {
     private WritingThread threadEscrita;
     private ReadingThread threadLeitura;
 
-    public UDPNetwork(InetAddress address, int port, OnReceiveMessage onReceiveMessage) throws SocketException {
+    public UDPNetwork(InetAddress address, int port, OnReceiveMessage onReceiveMessage) {
         this.port = port;
         this.address = address;
         this.onReceiveMessage = onReceiveMessage;
@@ -52,11 +49,10 @@ public class UDPNetwork {
         if (timeoutInMS < 0) return;
         this.timeout = timeoutInMS;
         if (socket == null) return;
-
-        synchronized (socket) {
-            socket.setSoTimeout(timeout);
-        }
+        socket.setSoTimeout(timeout);
     }
+
+    public InetAddress getAddress() { return address; }
 
     public void sendMessage(byte[] message) {
         threadEscrita.send(message);
@@ -72,11 +68,12 @@ public class UDPNetwork {
 
         @Override
         public byte[] read() {
-            byte[] message = new byte[1024];
+            byte[] message = new byte[37];
             DatagramPacket packet = new DatagramPacket(message, message.length);
             try {
                 socket.receive(packet);
                 System.out.println("UDPSocket read <<<-- " + ConversorUtil.bytesToHex(packet.getData()));
+            } catch (SocketTimeoutException ignored) {
             } catch (Throwable e) {
                 e.printStackTrace();
             }
