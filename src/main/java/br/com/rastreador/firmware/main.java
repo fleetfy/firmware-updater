@@ -7,9 +7,7 @@ public class main {
 
     public static void main(String[] args) throws Throwable {
         AtomicBoolean atomicFinished = new AtomicBoolean(false);
-        FirmwareUpdater updater = new FirmwareUpdater("192.168.1.187",
-//                 "C:\\Users\\barros\\Documents\\projetos\\rastreador\\firmware\\.pio\\build\\debug\\firmware.bin",
-                "/home/thiago/Documentos/projetos/github/rastreador/firmware/.pio/build/debug/firmware.bin",
+        FirmwareUpdater updater = new FirmwareUpdater("192.168.1.187","./firmware.bin",
                 new UpdateStatus() {
                     @Override
                     public void onSucess() {
