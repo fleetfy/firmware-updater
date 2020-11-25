@@ -1,15 +1,15 @@
 package br.com.rastreador.firmware.network;
 
+import br.com.rastreador.firmware.ConversorUtil;
 import br.com.rastreador.firmware.network.io.InputData;
 import br.com.rastreador.firmware.network.io.OutputData;
 import br.com.rastreador.firmware.network.io.ReadingThread;
 import br.com.rastreador.firmware.network.io.WritingThread;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class UDPNetwork {
 
@@ -19,10 +19,12 @@ public class UDPNetwork {
     private final int port;
     private int timeout = -1;
 
+    private UDPData udpData;
+
     private WritingThread threadEscrita;
     private ReadingThread threadLeitura;
 
-    public UDPNetwork(InetAddress address, int port, OnReceiveMessage onReceiveMessage) throws SocketException {
+    public UDPNetwork(InetAddress address, int port, OnReceiveMessage onReceiveMessage) {
         this.port = port;
         this.address = address;
         this.onReceiveMessage = onReceiveMessage;
@@ -31,9 +33,10 @@ public class UDPNetwork {
     public synchronized void start() throws IOException  {
         stop();
         socket = new DatagramSocket();
-        if (timeout > 0) socket.setSoTimeout(timeout);
+        if (timeout > 0)
+            socket.setSoTimeout(timeout);
 
-        UDPData udpData = new UDPData(socket);
+        udpData = new UDPData(socket);
         threadEscrita = new WritingThread(udpData);
         threadEscrita.start();
         threadLeitura = new ReadingThread(udpData, onReceiveMessage);
@@ -46,23 +49,28 @@ public class UDPNetwork {
         if (socket != null) socket.close();
     }
 
-    public void setTimeout(int timeout) throws SocketException {
-        if (timeout < 0) return;
-        this.timeout = timeout;
+    public void setTimeout(int timeoutInMS) throws SocketException {
+        if (timeoutInMS < 0) return;
+        this.timeout = timeoutInMS;
         if (socket == null) return;
-
-        synchronized (socket) {
-            socket.setSoTimeout(timeout);
-        }
+        socket.setSoTimeout(timeout);
     }
+
+    public InetAddress getAddress() { return address; }
 
     public void sendMessage(byte[] message) {
         threadEscrita.send(message);
     }
 
+    public void setReadSize(int size) {
+        udpData.atomicSizeOfRead.set(size);
+    }
+
     private class UDPData implements InputData, OutputData {
 
         private final DatagramSocket socket;
+
+        private final AtomicInteger atomicSizeOfRead = new AtomicInteger(1024);
 
         public UDPData(DatagramSocket socket) {
             this.socket = socket;
@@ -71,19 +79,25 @@ public class UDPNetwork {
         @Override
         public byte[] read() {
             byte[] message = new byte[1024];
-            DatagramPacket packet = new DatagramPacket(message, message.length, address, port);
+            byte[] messageRead = new byte[0];
+            DatagramPacket packet = new DatagramPacket(message, message.length);
             try {
                 socket.receive(packet);
+                messageRead = Arrays.copyOf(packet.getData(), atomicSizeOfRead.get());
+                System.out.println("UDPSocket read <<<-- " + ConversorUtil.bytesToHex(messageRead));
+            } catch (SocketTimeoutException ignored) {
             } catch (Throwable e) {
-//                e.printStackTrace();
+                e.printStackTrace();
             }
-            return packet.getData();
+
+            return messageRead;
         }
 
         @Override
         public void write(byte[] message) {
             try {
-                socket.send(new DatagramPacket(message, message.length));
+                socket.send(new DatagramPacket(message, message.length, address, port));
+                System.out.println("UDPSocket write -->>> " + ConversorUtil.bytesToHex(message));
             } catch (Throwable e) {
                 e.printStackTrace();
             }
