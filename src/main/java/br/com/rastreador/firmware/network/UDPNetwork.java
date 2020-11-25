@@ -8,6 +8,8 @@ import br.com.rastreador.firmware.network.io.WritingThread;
 
 import java.io.IOException;
 import java.net.*;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class UDPNetwork {
 
@@ -16,6 +18,8 @@ public class UDPNetwork {
     private DatagramSocket socket;
     private final int port;
     private int timeout = -1;
+
+    private UDPData udpData;
 
     private WritingThread threadEscrita;
     private ReadingThread threadLeitura;
@@ -32,7 +36,7 @@ public class UDPNetwork {
         if (timeout > 0)
             socket.setSoTimeout(timeout);
 
-        UDPData udpData = new UDPData(socket);
+        udpData = new UDPData(socket);
         threadEscrita = new WritingThread(udpData);
         threadEscrita.start();
         threadLeitura = new ReadingThread(udpData, onReceiveMessage);
@@ -58,9 +62,15 @@ public class UDPNetwork {
         threadEscrita.send(message);
     }
 
+    public void setReadSize(int size) {
+        udpData.atomicSizeOfRead.set(size);
+    }
+
     private class UDPData implements InputData, OutputData {
 
         private final DatagramSocket socket;
+
+        private final AtomicInteger atomicSizeOfRead = new AtomicInteger(1024);
 
         public UDPData(DatagramSocket socket) {
             this.socket = socket;
@@ -68,16 +78,19 @@ public class UDPNetwork {
 
         @Override
         public byte[] read() {
-            byte[] message = new byte[37];
+            byte[] message = new byte[1024];
+            byte[] messageRead;
             DatagramPacket packet = new DatagramPacket(message, message.length);
             try {
                 socket.receive(packet);
-                System.out.println("UDPSocket read <<<-- " + ConversorUtil.bytesToHex(packet.getData()));
+                messageRead = Arrays.copyOf(packet.getData(), atomicSizeOfRead.get());
+                System.out.println("UDPSocket read <<<-- " + ConversorUtil.bytesToHex(messageRead));
             } catch (SocketTimeoutException ignored) {
             } catch (Throwable e) {
                 e.printStackTrace();
             }
-            return packet.getData();
+
+            return message;
         }
 
         @Override
