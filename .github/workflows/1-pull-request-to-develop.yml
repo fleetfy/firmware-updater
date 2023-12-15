@@ -9,6 +9,7 @@ on:
 jobs:
   ci-java-maven:
     uses: fleetfy/fleetfy-reusable-java-maven-workflows/.github/workflows/ci.yml@main
+    secrets: inherit
 
   ci-infra-terraform:
     uses: fleetfy/fleetfy-reusable-commons-infra-workflows/.github/workflows/build.yml@main
