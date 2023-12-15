@@ -1,0 +1,23 @@
+name: "1 - [FEAT] Build & PR"
+
+on:
+  push:
+    branches:
+      - 'feature**'
+      - 'fix**'
+
+jobs:
+  ci-java-maven:
+    uses: fleetfy/fleetfy-reusable-java-maven-workflows/.github/workflows/ci.yml@main
+
+  ci-infra-terraform:
+    uses: fleetfy/fleetfy-reusable-commons-infra-workflows/.github/workflows/build.yml@v1
+    secrets: inherit
+
+  open-pr-to-develop:
+    needs: ci-infra-terraform
+    uses: fleetfy/fleetfy-reusable-pull-request-workflows/.github/workflows/create.yml@v1
+    with:
+      origin-branch: '${{ github.ref_name }}'
+      target-branch: 'develop'
+    secrets: inherit

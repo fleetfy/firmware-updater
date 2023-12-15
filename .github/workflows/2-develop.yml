@@ -1,0 +1,11 @@
+name: "2 - [DEV] Build & Deploy Infra"
+
+on:
+  pull_request:
+    types: closed
+    branches: develop
+
+jobs:
+  infra:
+    uses: fleetfy/fleetfy-reusable-commons-infra-workflows/.github/workflows/develop.yml@v1
+    secrets: inherit

@@ -1,0 +1,11 @@
+name: "4 - [PROD] Promote & Deploy"
+
+on:
+  pull_request:
+    types: closed
+    branches: 'main'
+
+jobs:
+  infra:
+    uses: fleetfy/fleetfy-reusable-commons-infra-workflows/.github/workflows/production.yml@v1
+    secrets: inherit
